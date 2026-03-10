@@ -37,7 +37,7 @@ router.post('/signup', async (req: Request, res: Response) => {
     }
 
     const user = await User.create({ username, password });
-    const token = signToken(user._id as string, user.username);
+    const token = signToken(String(user._id), user.username);
 
     res.status(201).json({
       token,
@@ -74,7 +74,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const token = signToken(user._id as string, user.username);
+    const token = signToken(String(user._id), user.username);
 
     res.json({
       token,
