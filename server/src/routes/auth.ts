@@ -4,10 +4,21 @@ import { User } from '../models/User.js';
 
 const router = Router();
 
-function signToken(id: string, username: string) {
-  return jwt.sign({ id, username }, process.env.JWT_SECRET!, {
+function signToken(id: string, username: string, role: string) {
+  return jwt.sign({ id, username, role }, process.env.JWT_SECRET!, {
     expiresIn: '7d',
   });
+}
+
+// Usernames listed in ADMIN_USERNAMES (comma-separated) are promoted to
+// admin automatically on signup/login, so the first admin never needs a
+// manual DB edit.
+function isConfiguredAdmin(username: string): boolean {
+  const list = (process.env.ADMIN_USERNAMES || '')
+    .split(',')
+    .map((u) => u.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(username.toLowerCase());
 }
 
 // SIGN UP
@@ -37,13 +48,18 @@ router.post('/signup', async (req: Request, res: Response) => {
     }
 
     const user = await User.create({ username, password });
-    const token = signToken(String(user._id), user.username);
+    if (isConfiguredAdmin(user.username)) {
+      user.role = 'admin';
+      await user.save();
+    }
+    const token = signToken(String(user._id), user.username, user.role);
 
     res.status(201).json({
       token,
       user: {
         id: user._id,
         username: user.username,
+        role: user.role,
         attending: user.attending,
       },
     });
@@ -74,13 +90,19 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const token = signToken(String(user._id), user.username);
+    if (isConfiguredAdmin(user.username) && user.role !== 'admin') {
+      user.role = 'admin';
+      await user.save();
+    }
+
+    const token = signToken(String(user._id), user.username, user.role);
 
     res.json({
       token,
       user: {
         id: user._id,
         username: user.username,
+        role: user.role,
         attending: user.attending,
       },
     });

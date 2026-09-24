@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 export interface AuthRequest extends Request {
   userId?: string;
   username?: string;
+  role?: 'user' | 'admin';
 }
 
 export function auth(req: AuthRequest, res: Response, next: NextFunction) {
@@ -18,11 +19,21 @@ export function auth(req: AuthRequest, res: Response, next: NextFunction) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       id: string;
       username: string;
+      role: 'user' | 'admin';
     };
     req.userId = decoded.id;
     req.username = decoded.username;
+    req.role = decoded.role;
     next();
   } catch {
     res.status(401).json({ error: 'Token non valido' });
   }
+}
+
+export function adminOnly(req: AuthRequest, res: Response, next: NextFunction) {
+  if (req.role !== 'admin') {
+    res.status(403).json({ error: 'Accesso riservato agli amministratori' });
+    return;
+  }
+  next();
 }

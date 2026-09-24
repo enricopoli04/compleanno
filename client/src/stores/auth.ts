@@ -13,9 +13,10 @@ function isTokenValid(token: string): boolean {
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'));
-  const user = ref<{ id: string; username: string; attending: string | null } | null>(null);
+  const user = ref<{ id: string; username: string; role: 'user' | 'admin'; attending: string | null } | null>(null);
 
   const isLoggedIn = computed(() => !!token.value && isTokenValid(token.value));
+  const isAdmin = computed(() => user.value?.role === 'admin');
 
   async function signup(username: string, password: string) {
     const data = await api.signup(username, password);
@@ -50,5 +51,5 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = await api.setAttendance(attending);
   }
 
-  return { token, user, isLoggedIn, signup, login, fetchMe, logout, setAttendance };
+  return { token, user, isLoggedIn, isAdmin, signup, login, fetchMe, logout, setAttendance };
 });

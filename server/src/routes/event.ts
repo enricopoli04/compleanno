@@ -16,6 +16,7 @@ router.get('/me', auth, async (req: AuthRequest, res: Response) => {
     res.json({
       id: user._id,
       username: user.username,
+      role: user.role,
       attending: user.attending,
     });
   } catch {
@@ -52,6 +53,7 @@ router.put('/attendance', auth, async (req: AuthRequest, res: Response) => {
     res.json({
       id: user!._id,
       username: user!.username,
+      role: user!.role,
       attending: user!.attending,
     });
   } catch {

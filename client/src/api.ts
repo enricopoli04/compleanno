@@ -76,4 +76,27 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ seats }),
     }),
+
+  // Admin
+  adminGetUsers: () => request<any[]>('/admin/users'),
+
+  adminSetUserAttendance: (id: string, attending: 'yes' | 'no' | null) =>
+    request<any>(`/admin/users/${id}/attendance`, {
+      method: 'PUT',
+      body: JSON.stringify({ attending }),
+    }),
+
+  adminDeleteUser: (id: string) =>
+    request<any>(`/admin/users/${id}`, { method: 'DELETE' }),
+
+  adminGetCars: () => request<any[]>('/admin/cars'),
+
+  adminUpdateCar: (id: string, seats: number) =>
+    request<any>(`/admin/cars/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ seats }),
+    }),
+
+  adminDeleteCar: (id: string) =>
+    request<any>(`/admin/cars/${id}`, { method: 'DELETE' }),
 };

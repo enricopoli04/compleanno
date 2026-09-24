@@ -5,6 +5,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import eventRoutes from './routes/event.js';
+import adminRoutes from './routes/admin.js';
 
 // Node's default resolver can fail to look up the SRV records used by
 // mongodb+srv:// URIs on some Windows setups even when the OS resolves
@@ -22,6 +23,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/event', eventRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

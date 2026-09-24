@@ -32,6 +32,7 @@ function initials(name: string) {
     <ul class="nav-links" v-if="auth.isLoggedIn">
       <li><router-link to="/evento">Info Evento</router-link></li>
       <li><router-link to="/partecipazione">Partecipazione</router-link></li>
+      <li v-if="auth.isAdmin"><router-link to="/admin">Admin</router-link></li>
     </ul>
 
     <ul class="nav-right" v-if="!auth.isLoggedIn">
