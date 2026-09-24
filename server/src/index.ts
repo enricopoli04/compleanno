@@ -1,9 +1,15 @@
 import 'dotenv/config';
+import dns from 'dns';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import eventRoutes from './routes/event.js';
+
+// Node's default resolver can fail to look up the SRV records used by
+// mongodb+srv:// URIs on some Windows setups even when the OS resolves
+// them fine, so we point it at public resolvers explicitly.
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
