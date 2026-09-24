@@ -35,14 +35,15 @@ async function handleLogin() {
 
       <div v-if="error" class="error-msg">{{ error }}</div>
 
-      <div class="auth-form">
+      <form id="login-form" class="auth-form" @submit.prevent="handleLogin">
         <div class="field">
           <label>Username</label>
           <input
             v-model="username"
             type="text"
+            name="username"
+            autocomplete="username"
             placeholder="Il tuo username"
-            @keyup.enter="handleLogin"
           />
         </div>
         <div class="field">
@@ -50,14 +51,15 @@ async function handleLogin() {
           <input
             v-model="password"
             type="password"
+            name="password"
+            autocomplete="current-password"
             placeholder="••••••••"
-            @keyup.enter="handleLogin"
           />
         </div>
-      </div>
+      </form>
 
       <div class="auth-actions">
-        <button class="btn-full" @click="handleLogin" :disabled="loading">
+        <button type="submit" form="login-form" class="btn-full" :disabled="loading">
           {{ loading ? 'Caricamento...' : 'Accedi →' }}
         </button>
         <div class="divider">oppure</div>

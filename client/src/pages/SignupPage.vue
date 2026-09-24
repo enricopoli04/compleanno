@@ -55,14 +55,15 @@ async function handleSignup() {
 
       <div v-if="error" class="error-msg">{{ error }}</div>
 
-      <div class="auth-form">
+      <form id="signup-form" class="auth-form" @submit.prevent="handleSignup">
         <div class="field">
           <label>Username</label>
           <input
             v-model="username"
             type="text"
+            name="username"
+            autocomplete="username"
             placeholder="Scegli un username"
-            @keyup.enter="handleSignup"
           />
         </div>
         <div class="field">
@@ -70,8 +71,9 @@ async function handleSignup() {
           <input
             v-model="password"
             type="password"
+            name="new-password"
+            autocomplete="new-password"
             placeholder="Min. 6 caratteri"
-            @keyup.enter="handleSignup"
           />
         </div>
         <div class="field">
@@ -79,14 +81,15 @@ async function handleSignup() {
           <input
             v-model="confirmPassword"
             type="password"
+            name="confirm-password"
+            autocomplete="new-password"
             placeholder="Ripeti la password"
-            @keyup.enter="handleSignup"
           />
         </div>
-      </div>
+      </form>
 
       <div class="auth-actions">
-        <button class="btn-full" @click="handleSignup" :disabled="loading">
+        <button type="submit" form="signup-form" class="btn-full" :disabled="loading">
           {{ loading ? 'Caricamento...' : 'Registrati →' }}
         </button>
         <div class="divider">hai già un account?</div>

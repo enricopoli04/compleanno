@@ -267,6 +267,7 @@ onMounted(async () => {
           <input
             v-model="noteDraft"
             type="text"
+            autocomplete="off"
             maxlength="200"
             placeholder="es. arrivo tardi, porto la torta..."
             @input="noteSaved = false"
@@ -291,7 +292,7 @@ onMounted(async () => {
           <div class="add-car-form">
             <div class="field" style="margin-bottom: 0; width: 120px">
               <label>Posti</label>
-              <input v-model.number="newCarSeats" type="number" min="1" max="20" />
+              <input v-model.number="newCarSeats" type="number" autocomplete="off" min="1" max="20" />
             </div>
             <button class="btn btn-sm" @click="addCar">Offri passaggio</button>
           </div>

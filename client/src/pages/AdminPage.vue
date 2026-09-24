@@ -146,6 +146,7 @@ onMounted(loadData);
         <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem">
           <input
             type="number"
+            autocomplete="off"
             min="1"
             max="20"
             :value="c.seats"
