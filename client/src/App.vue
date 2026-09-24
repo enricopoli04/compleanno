@@ -9,6 +9,9 @@ const router = useRouter();
 onMounted(async () => {
   if (auth.isLoggedIn) {
     await auth.fetchMe();
+    if (!auth.isLoggedIn) {
+      router.push('/login');
+    }
   }
 });
 

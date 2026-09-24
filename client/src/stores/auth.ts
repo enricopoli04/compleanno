@@ -2,11 +2,20 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '../api';
 
+function isTokenValid(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload.exp !== 'number' || payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'));
   const user = ref<{ id: string; username: string; attending: string | null } | null>(null);
 
-  const isLoggedIn = computed(() => !!token.value);
+  const isLoggedIn = computed(() => !!token.value && isTokenValid(token.value));
 
   async function signup(username: string, password: string) {
     const data = await api.signup(username, password);

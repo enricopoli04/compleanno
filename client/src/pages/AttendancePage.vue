@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { api } from '../api';
 
 const auth = useAuthStore();
+const router = useRouter();
 
 const attendees = ref<any[]>([]);
 const cars = ref<any[]>([]);
@@ -95,6 +97,10 @@ function isPassengerIn(carId: string, username: string): boolean {
 
 onMounted(async () => {
   await auth.fetchMe();
+  if (!auth.isLoggedIn) {
+    router.push('/login');
+    return;
+  }
   await loadData();
 });
 </script>
