@@ -18,6 +18,7 @@ router.get('/me', auth, async (req: AuthRequest, res: Response) => {
       username: user.username,
       role: user.role,
       attending: user.attending,
+      note: user.note,
     });
   } catch {
     res.status(500).json({ error: 'Errore del server' });
@@ -55,6 +56,34 @@ router.put('/attendance', auth, async (req: AuthRequest, res: Response) => {
       username: user!.username,
       role: user!.role,
       attending: user!.attending,
+      note: user!.note,
+    });
+  } catch {
+    res.status(500).json({ error: 'Errore del server' });
+  }
+});
+
+// SET own free-text note (visible to all logged-in users)
+router.put('/note', auth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { note } = req.body;
+    if (typeof note !== 'string' || note.length > 200) {
+      res.status(400).json({ error: 'Nota non valida (max 200 caratteri)' });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { note: note.trim() },
+      { new: true }
+    ).select('-password');
+
+    res.json({
+      id: user!._id,
+      username: user!.username,
+      role: user!.role,
+      attending: user!.attending,
+      note: user!.note,
     });
   } catch {
     res.status(500).json({ error: 'Errore del server' });
@@ -65,7 +94,7 @@ router.put('/attendance', auth, async (req: AuthRequest, res: Response) => {
 router.get('/attendees', auth, async (_req: AuthRequest, res: Response) => {
   try {
     const users = await User.find({ attending: { $ne: null } })
-      .select('username attending')
+      .select('username role attending note')
       .sort({ username: 1 });
     res.json(users);
   } catch {

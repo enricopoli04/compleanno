@@ -51,6 +51,12 @@ export const api = {
       body: JSON.stringify({ attending }),
     }),
 
+  setNote: (note: string) =>
+    request<any>('/event/note', {
+      method: 'PUT',
+      body: JSON.stringify({ note }),
+    }),
+
   getAttendees: () => request<any[]>('/event/attendees'),
 
   // Cars

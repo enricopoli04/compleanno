@@ -13,6 +13,10 @@ const newCarSeats = ref(4);
 const loading = ref(false);
 const carError = ref('');
 
+const noteDraft = ref('');
+const noteSaving = ref(false);
+const noteSaved = ref(false);
+
 const yesAttendees = computed(() => attendees.value.filter((a) => a.attending === 'yes'));
 const noAttendees = computed(() => attendees.value.filter((a) => a.attending === 'no'));
 
@@ -76,6 +80,20 @@ async function leaveCar(id: string) {
   }
 }
 
+async function saveNote() {
+  noteSaving.value = true;
+  noteSaved.value = false;
+  try {
+    await auth.setNote(noteDraft.value);
+    await loadData();
+    noteSaved.value = true;
+  } catch {
+    // silent
+  } finally {
+    noteSaving.value = false;
+  }
+}
+
 function initials(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
@@ -101,6 +119,7 @@ onMounted(async () => {
     router.push('/login');
     return;
   }
+  noteDraft.value = auth.user?.note || '';
   await loadData();
 });
 </script>
@@ -126,9 +145,27 @@ onMounted(async () => {
             Presenti ({{ yesAttendees.length }})
           </div>
           <ul class="attendee-list">
-            <li v-for="a in yesAttendees" :key="a._id" class="attendee-item">
+            <li
+              v-for="a in yesAttendees"
+              :key="a._id"
+              class="attendee-item"
+              style="flex-wrap: wrap"
+            >
               <span class="attendee-badge badge-yes">sì</span>
               <span>{{ a.username }}</span>
+              <span
+                v-if="a.role === 'admin'"
+                class="attendee-badge"
+                style="background: var(--giallo); color: var(--nero)"
+              >
+                admin
+              </span>
+              <span
+                v-if="a.note"
+                style="flex-basis: 100%; color: var(--grigio); font-size: 0.65rem; font-style: italic"
+              >
+                “{{ a.note }}”
+              </span>
             </li>
             <li
               v-if="yesAttendees.length === 0"
@@ -153,9 +190,27 @@ onMounted(async () => {
             Assenti ({{ noAttendees.length }})
           </div>
           <ul class="attendee-list">
-            <li v-for="a in noAttendees" :key="a._id" class="attendee-item">
+            <li
+              v-for="a in noAttendees"
+              :key="a._id"
+              class="attendee-item"
+              style="flex-wrap: wrap"
+            >
               <span class="attendee-badge badge-no">no</span>
               <span>{{ a.username }}</span>
+              <span
+                v-if="a.role === 'admin'"
+                class="attendee-badge"
+                style="background: var(--giallo); color: var(--nero)"
+              >
+                admin
+              </span>
+              <span
+                v-if="a.note"
+                style="flex-basis: 100%; color: var(--grigio); font-size: 0.65rem; font-style: italic"
+              >
+                “{{ a.note }}”
+              </span>
             </li>
             <li
               v-if="noAttendees.length === 0"
@@ -205,6 +260,23 @@ onMounted(async () => {
         </div>
         <div class="attendance-status" v-else>
           Non hai ancora indicato se parteciperai. Scegli una delle opzioni qui sopra.
+        </div>
+
+        <div class="field" style="margin-top: 2rem; max-width: 420px">
+          <label>La tua nota (visibile agli altri partecipanti)</label>
+          <input
+            v-model="noteDraft"
+            type="text"
+            maxlength="200"
+            placeholder="es. arrivo tardi, porto la torta..."
+            @input="noteSaved = false"
+          />
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem; max-width: 420px">
+          <button class="btn btn-sm" @click="saveNote" :disabled="noteSaving">
+            Salva nota
+          </button>
+          <span v-if="noteSaved" style="font-size: 0.65rem; color: var(--grigio)">Salvata ✓</span>
         </div>
       </div>
     </section>

@@ -61,6 +61,7 @@ router.post('/signup', async (req: Request, res: Response) => {
         username: user.username,
         role: user.role,
         attending: user.attending,
+        note: user.note,
       },
     });
   } catch (err: any) {
@@ -104,6 +105,7 @@ router.post('/login', async (req: Request, res: Response) => {
         username: user.username,
         role: user.role,
         attending: user.attending,
+        note: user.note,
       },
     });
   } catch {
