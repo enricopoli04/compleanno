@@ -78,11 +78,18 @@ router.put('/attendance', auth, async (req: AuthRequest, res: Response) => {
 // SET own free-text note (visible to all logged-in users)
 router.put('/note', auth, async (req: AuthRequest, res: Response) => {
   try {
-    const { note } = req.body;
-    if (typeof note !== 'string' || note.length > 200) {
+
+    // const { note } = req.body;
+    // if (typeof note !== 'string' || note.length > 200) {
+    //   res.status(400).json({ error: 'Nota non valida (max 200 caratteri)' });
+    //   return;
+    // }
+    const parsed = NoteSchema.safeParse(req.body);
+    if (!parsed.success) {
       res.status(400).json({ error: 'Nota non valida (max 200 caratteri)' });
       return;
     }
+    const { note } = parsed.data;
 
     const user = await User.findByIdAndUpdate(
       req.userId,
