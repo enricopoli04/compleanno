@@ -15,9 +15,6 @@ function signToken(id: string, username: string, role: string) {
   });
 }
 
-// Usernames listed in ADMIN_USERNAMES (comma-separated) are promoted to
-// admin automatically on signup/login, so the first admin never needs a
-// manual DB edit.
 function isConfiguredAdmin(username: string): boolean {
   const list = (process.env.ADMIN_USERNAMES || '')
     .split(',')
@@ -26,25 +23,27 @@ function isConfiguredAdmin(username: string): boolean {
   return list.includes(username.toLowerCase());
 }
 
-// SIGN UP
 router.post('/signup', async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
 
-    if (!username || !password) {
-      res.status(400).json({ error: 'Username e password richiesti' });
-      return;
+    // if (!username || !password) {
+    //   res.status(400).json({ error: 'Username e password richiesti' });
+    //   return;
+    // }
+    // if (username.length < 3) {
+    //   res.status(400).json({ error: 'Username deve avere almeno 3 caratteri' });
+    //   return;
+    // }
+    // if (password.length < 6) {
+    //   res.status(400).json({ error: 'Password deve avere almeno 6 caratteri' });
+    //   return;
+    // }
+    const parsed = AuthSchema.safeParse(req.body);
+    if (!parsed.success) {
+    res.status(400).json({ error: 'Input non valido' });
+    return;
     }
-
-    if (username.length < 3) {
-      res.status(400).json({ error: 'Username deve avere almeno 3 caratteri' });
-      return;
-    }
-
-    if (password.length < 6) {
-      res.status(400).json({ error: 'Password deve avere almeno 6 caratteri' });
-      return;
-    }
+    const { username, password } = parsed.data;
 
     const existing = await User.findOne({ username });
     if (existing) {
@@ -74,7 +73,6 @@ router.post('/signup', async (req: Request, res: Response) => {
   }
 });
 
-// LOGIN
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
