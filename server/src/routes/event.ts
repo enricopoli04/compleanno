@@ -257,6 +257,10 @@ router.post('/cars/:id/join', auth, async (req: AuthRequest, res: Response) => {
 // LEAVE car as passenger
 router.post('/cars/:id/leave', auth, async (req: AuthRequest, res: Response) => {
   try {
+    if (!IdSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: 'ID non valido' });
+      return;
+    }
     const car = await Car.findById(req.params.id);
     if (!car) {
       res.status(404).json({ error: 'Macchina non trovata' });
