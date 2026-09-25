@@ -27,11 +27,22 @@ router.get('/users', async (_req: AuthRequest, res: Response) => {
 // SET a user's attendance
 router.put('/users/:id/attendance', async (req: AuthRequest, res: Response) => {
   try {
-    const { attending } = req.body;
-    if (!['yes', 'no', null].includes(attending)) {
+    if (!IdSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: 'ID non valido' });
+      return;
+    }
+    const parsed = AttendanceSchema.safeParse(req.body);
+    if (!parsed.success) {
       res.status(400).json({ error: 'Valore non valido' });
       return;
     }
+
+    // const { attending } = req.body;
+    // if (!['yes', 'no', null].includes(attending)) {
+    //   res.status(400).json({ error: 'Valore non valido' });
+    //   return;
+    // }
+    const { attending } = parsed.data;
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
