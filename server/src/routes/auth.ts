@@ -75,12 +75,18 @@ router.post('/signup', async (req: Request, res: Response) => {
 
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
 
-    if (!username || !password) {
-      res.status(400).json({ error: 'Username e password richiesti' });
+    // const { username, password } = req.body;
+    // if (!username || !password) {
+    //   res.status(400).json({ error: 'Username e password richiesti' });
+    //   return;
+    // }
+    const parsed = AuthSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Credenziali non valide' });
       return;
     }
+    const { username, password } = parsed.data;
 
     const user = await User.findOne({ username });
     if (!user) {
