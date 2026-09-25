@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import { z } from 'zod';
 import { auth, AuthRequest } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { Car } from '../models/Car.js';
