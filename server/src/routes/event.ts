@@ -205,6 +205,10 @@ router.delete('/cars/:id', auth, async (req: AuthRequest, res: Response) => {
 // JOIN car as passenger
 router.post('/cars/:id/join', auth, async (req: AuthRequest, res: Response) => {
   try {
+    if (!IdSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: 'ID non valido' });
+      return;
+    }
     const user = await User.findById(req.userId);
     if (!user || user.attending !== 'yes') {
       res.status(400).json({ error: 'Devi partecipare per salire in macchina' });
