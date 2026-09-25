@@ -136,9 +136,15 @@ router.get('/cars', auth, async (_req: AuthRequest, res: Response) => {
 // CREATE car (offer ride)
 router.post('/cars', auth, async (req: AuthRequest, res: Response) => {
   try {
-    const { seats } = req.body;
 
-    // Check user is attending
+    // const { seats } = req.body;
+    const parsed = SeatsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Numero di posti non valido (1-20)' });
+      return;
+    }
+    const { seats } = parsed.data;
+
     const user = await User.findById(req.userId);
     if (!user || user.attending !== 'yes') {
       res.status(400).json({ error: 'Devi partecipare per offrire un passaggio' });
@@ -160,7 +166,10 @@ router.post('/cars', auth, async (req: AuthRequest, res: Response) => {
 
     const car = await Car.create({
       driverUsername: req.username,
-      seats: seats || 4,
+
+      // seats: seats || 4,
+      seats,
+
       passengers: [],
     });
 
