@@ -284,6 +284,15 @@ router.post('/cars/:id/leave', auth, async (req: AuthRequest, res: Response) => 
 // UPDATE car seats
 router.put('/cars/:id', auth, async (req: AuthRequest, res: Response) => {
   try {
+    if (!IdSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: 'ID non valido' });
+      return;
+    }
+    const parsed = SeatsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Numero di posti non valido (1-20)' });
+      return;
+    }
     const car = await Car.findById(req.params.id);
     if (!car) {
       res.status(404).json({ error: 'Macchina non trovata' });
@@ -294,13 +303,18 @@ router.put('/cars/:id', auth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (req.body.seats) {
-      if (req.body.seats < car.passengers.length) {
-        res.status(400).json({ error: 'Non puoi ridurre i posti sotto il numero di passeggeri attuali' });
-        return;
-      }
-      car.seats = req.body.seats;
+    // if (req.body.seats) {
+    //   if (req.body.seats < car.passengers.length) {
+    //     res.status(400).json({ error: 'Non puoi ridurre i posti sotto il numero di passeggeri attuali' });
+    //     return;
+    //   }
+    //   car.seats = req.body.seats;
+    // }
+    if (parsed.data.seats < car.passengers.length) {
+      res.status(400).json({ error: 'Non puoi ridurre i posti sotto il numero di passeggeri attuali' });
+      return;
     }
+    car.seats = parsed.data.seats;
 
     await car.save();
     res.json(car);
