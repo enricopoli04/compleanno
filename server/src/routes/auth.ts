@@ -2,6 +2,10 @@ import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { User } from '../models/User.js';
+const AuthSchema = z.object({
+username: z.string().regex(/^[a-zA-Z0-9_]{3,30}$/),
+password: z.string().min(8).max(72),
+});
 
 const router = Router();
 
