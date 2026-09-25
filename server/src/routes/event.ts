@@ -182,6 +182,10 @@ router.post('/cars', auth, async (req: AuthRequest, res: Response) => {
 // DELETE car
 router.delete('/cars/:id', auth, async (req: AuthRequest, res: Response) => {
   try {
+    if (!IdSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: 'ID non valido' });
+      return;
+    }
     const car = await Car.findById(req.params.id);
     if (!car) {
       res.status(404).json({ error: 'Macchina non trovata' });
