@@ -3,6 +3,10 @@ import { z } from 'zod';
 import { auth, AuthRequest } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { Car } from '../models/Car.js';
+const AttendanceSchema = z.object({ attending: z.enum(['yes', 'no']).nullable() });
+const NoteSchema = z.object({ note: z.string().max(200) });
+const SeatsSchema = z.object({ seats: z.number().int().min(1).max(20) });
+const IdSchema = z.string().regex(/^[a-f\d]{24}$/i);
 
 const router = Router();
 
