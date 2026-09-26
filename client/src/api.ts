@@ -19,7 +19,9 @@ async function request<T>(url: string, opts: RequestInit = {}): Promise<T> {
     },
   });
 
-  const data = await res.json();
+  // const data = await res.json();
+  const ct = res.headers.get('content-type') || '';
+  const data = ct.includes('application/json') ? await res.json() : { error: 'Errore del server' };
 
   if (!res.ok) {
     throw new Error(data.error || 'Errore del server');
