@@ -41,7 +41,14 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     res.status(400).json({ error: "ID non valido" });
     return;
   }
+
+  // if (err.code === 11000) {
+  if (err.type === "entity.too.large") {
+    res.status(413).json({ error: "Payload troppo grande" });
+    return;
+  }
   if (err.code === 11000) {
+
     res.status(409).json({ error: "Risorsa già esistente" });
     return;
   }
