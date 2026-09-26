@@ -73,7 +73,7 @@ async function handleSignup() {
             type="password"
             name="new-password"
             autocomplete="new-password"
-            placeholder="Min. 6 caratteri"
+            placeholder="Min. 8 caratteri"
           />
         </div>
         <div class="field">
