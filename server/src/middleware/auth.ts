@@ -16,7 +16,10 @@ export function auth(req: AuthRequest, res: Response, next: NextFunction) {
 
   try {
     const token = header.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+
+    // const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ['HS256'] }) as {
+
       id: string;
       username: string;
       role: 'user' | 'admin';
