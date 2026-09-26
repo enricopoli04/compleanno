@@ -45,13 +45,21 @@ router.post('/signup', async (req: Request, res: Response) => {
     }
     const { username, password } = parsed.data;
 
-    const existing = await User.findOne({ username });
-    if (existing) {
-      res.status(409).json({ error: 'Username già in uso' });
-      return;
+    // const existing = await User.findOne({ username });
+    // if (existing) {
+    //   res.status(409).json({ error: 'Username già in uso' });
+    //   return;
+    // }
+    let user;
+    try {
+    user = await User.create({ username, password });
+    } catch (e: any) {
+    if (e.code === 11000) {
+    res.status(409).json({ error: 'Username già in uso' });
+    return;
     }
-
-    const user = await User.create({ username, password });
+    throw e;
+    }
     if (isConfiguredAdmin(user.username)) {
       user.role = 'admin';
       await user.save();
