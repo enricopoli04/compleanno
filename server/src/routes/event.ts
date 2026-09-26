@@ -151,27 +151,27 @@ router.post('/cars', auth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // Check not already driver
-    const existing = await Car.findOne({ driverUsername: req.username });
-    if (existing) {
-      res.status(409).json({ error: 'Hai già offerto un passaggio' });
-      return;
-    }
-
     // Remove from other cars as passenger
     await Car.updateMany(
       { passengers: req.username },
       { $pull: { passengers: req.username } }
     );
 
-    const car = await Car.create({
-      driverUsername: req.username,
-
-      // seats: seats || 4,
-      seats,
-
-      passengers: [],
-    });
+    // const existing = await Car.findOne({ driverUsername: req.username });
+    // if (existing) {
+    //   res.status(409).json({ error: 'Hai già offerto un passaggio' });
+    //   return;
+    // }
+    let car;
+    try {
+    car = await Car.create({ driverUsername: req.username, seats, passengers: [] });
+    } catch (e: any) {
+    if (e.code === 11000) {
+    res.status(409).json({ error: 'Hai già offerto un passaggio' });
+    return;
+    }
+    throw e;
+    }
 
     res.status(201).json(car);
   } catch {
