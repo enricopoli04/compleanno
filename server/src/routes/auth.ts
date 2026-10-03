@@ -4,6 +4,9 @@ import { User } from '../models/User.js';
 
 const router = Router();
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCK_MINUTES = 15;
+
 function signToken(id: string, username: string, role: string) {
   return jwt.sign({ id, username, role }, process.env.JWT_SECRET!, {
     expiresIn: '7d',
@@ -97,16 +100,44 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      res.status(400).json({ error: 'Dati non validi' });
+      return;
+    }
+
     const user = await User.findOne({ username });
     if (!user) {
       res.status(401).json({ error: 'Credenziali non valide' });
       return;
     }
 
+    if (user.lockUntil && user.lockUntil > new Date()) {
+      const minutes = Math.ceil((user.lockUntil.getTime() - Date.now()) / 60000);
+      res.status(429).json({
+        error: `Account temporaneamente bloccato, riprova tra ${minutes} minuti`,
+      });
+      return;
+    }
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      const updated = await User.findByIdAndUpdate(
+        user._id,
+        { $inc: { failedAttempts: 1 } },
+        { new: true }
+      );
+      if (updated && updated.failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        await User.updateOne(
+          { _id: user._id },
+          { failedAttempts: 0, lockUntil: new Date(Date.now() + LOCK_MINUTES * 60000) }
+        );
+      }
       res.status(401).json({ error: 'Credenziali non valide' });
       return;
+    }
+
+    if (user.failedAttempts > 0 || user.lockUntil) {
+      await User.updateOne({ _id: user._id }, { failedAttempts: 0, lockUntil: null });
     }
 
     if (isConfiguredAdmin(user.username) && user.role !== 'admin') {

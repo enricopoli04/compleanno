@@ -7,6 +7,8 @@ export interface IUser extends Document {
   role: 'user' | 'admin';
   attending: 'yes' | 'no' | null;
   note: string;
+  failedAttempts: number;
+  lockUntil: Date | null;
   comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -40,6 +42,14 @@ const userSchema = new Schema<IUser>(
       trim: true,
       maxlength: 200,
       default: '',
+    },
+    failedAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lockUntil: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }
