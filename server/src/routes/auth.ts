@@ -1,8 +1,13 @@
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 
 const router = Router();
+
+// Hash fittizio con lo stesso costo (12) di quelli reali: serve a spendere
+// lo stesso tempo di bcrypt anche quando lo username non esiste.
+const FAKE_HASH = bcrypt.hashSync('password-fittizia', 12);
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
@@ -107,6 +112,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const user = await User.findOne({ username });
     if (!user) {
+      await bcrypt.compare(password, FAKE_HASH);
       res.status(401).json({ error: 'Credenziali non valide' });
       return;
     }
