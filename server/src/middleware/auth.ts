@@ -1,5 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
+
+// Limite di 100 rischieste in una finestra di 15 minuti sulle rotte API
+export const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Troppe richieste, riprova più tardi' },
+});
+
+// Limite sulle rischieste di login e signup per prevenire attacchi brute-force
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: 'Troppi tentativi di accesso, riprova tra 15 minuti' },
+});
 
 export interface AuthRequest extends Request {
   userId?: string;

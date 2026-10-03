@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import eventRoutes from './routes/event.js';
 import adminRoutes from './routes/admin.js';
+import { apiLimiter, authLimiter } from './middleware/auth.js';
 
 // Node's default resolver can fail to look up the SRV records used by
 // mongodb+srv:// URIs on some Windows setups even when the OS resolves
@@ -20,7 +21,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
+app.use('/api', apiLimiter);
+
 // Routes
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/event', eventRoutes);
 app.use('/api/admin', adminRoutes);
