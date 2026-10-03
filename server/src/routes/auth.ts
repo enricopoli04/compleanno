@@ -21,6 +21,18 @@ function isConfiguredAdmin(username: string): boolean {
   return list.includes(username.toLowerCase());
 }
 
+function validatePassword(password: string, username: string): string | null {
+  if (password.length < 10) return 'Password deve avere almeno 10 caratteri';
+  if (Buffer.byteLength(password) > 72) return 'Password troppo lunga';
+  if (!/[a-z]/.test(password)) return 'Password deve contenere una lettera minuscola';
+  if (!/[A-Z]/.test(password)) return 'Password deve contenere una lettera maiuscola';
+  if (!/[0-9]/.test(password)) return 'Password deve contenere un numero';
+  if (password.toLowerCase().includes(username.toLowerCase())) {
+    return 'Password non può contenere lo username';
+  }
+  return null;
+}
+
 // SIGN UP
 router.post('/signup', async (req: Request, res: Response) => {
   try {
@@ -31,13 +43,19 @@ router.post('/signup', async (req: Request, res: Response) => {
       return;
     }
 
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      res.status(400).json({ error: 'Dati non validi' });
+      return;
+    }
+
     if (username.length < 3) {
       res.status(400).json({ error: 'Username deve avere almeno 3 caratteri' });
       return;
     }
 
-    if (password.length < 6) {
-      res.status(400).json({ error: 'Password deve avere almeno 6 caratteri' });
+    const passwordError = validatePassword(password, username);
+    if (passwordError) {
+      res.status(400).json({ error: passwordError });
       return;
     }
 
