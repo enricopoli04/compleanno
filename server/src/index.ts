@@ -13,6 +13,13 @@ import { apiLimiter, authLimiter } from './middleware/auth.js';
 // them fine, so we point it at public resolvers explicitly.
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
+// Rifiuta l'avvio se il secret JWT manca, è troppo corto
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret || jwtSecret.length < 32 || jwtSecret.startsWith('<')) {
+  console.error('JWT_SECRET mancante, troppo corto (min 32 caratteri) o non configurato');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
