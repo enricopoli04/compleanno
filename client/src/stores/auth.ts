@@ -2,49 +2,52 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '../api';
 
-function isTokenValid(token: string): boolean {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return typeof payload.exp !== 'number' || payload.exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
-}
-
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string | null>(localStorage.getItem('token'));
   const user = ref<{ id: string; username: string; role: 'user' | 'admin'; attending: string | null; note: string } | null>(null);
 
-  const isLoggedIn = computed(() => !!token.value && isTokenValid(token.value));
+  const isLoggedIn = computed(() => !!user.value);
   const isAdmin = computed(() => user.value?.role === 'admin');
+
+  let initPromise: Promise<void> | null = null;
+
+  function init() {
+    if (!initPromise) {
+      initPromise = api
+        .getMe()
+        .then((me) => {
+          user.value = me;
+        })
+        .catch(() => {
+          user.value = null;
+        });
+    }
+    return initPromise;
+  }
+
+  async function fetchMe() {
+    try {
+      user.value = await api.getMe();
+    } catch {
+      user.value = null;
+    }
+  }
 
   async function signup(username: string, password: string) {
     const data = await api.signup(username, password);
-    token.value = data.token;
     user.value = data.user;
-    localStorage.setItem('token', data.token);
   }
 
   async function login(username: string, password: string) {
     const data = await api.login(username, password);
-    token.value = data.token;
     user.value = data.user;
-    localStorage.setItem('token', data.token);
   }
 
-  async function fetchMe() {
-    if (!token.value) return;
+  async function logout() {
     try {
-      user.value = await api.getMe();
-    } catch {
-      logout();
+      await api.logout();
+    } finally {
+      user.value = null;
     }
-  }
-
-  function logout() {
-    token.value = null;
-    user.value = null;
-    localStorage.removeItem('token');
   }
 
   async function setAttendance(attending: 'yes' | 'no' | null) {
@@ -55,5 +58,5 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = await api.setNote(note);
   }
 
-  return { token, user, isLoggedIn, isAdmin, signup, login, fetchMe, logout, setAttendance, setNote };
+  return { user, isLoggedIn, isAdmin, init, fetchMe, signup, login, logout, setAttendance, setNote };
 });

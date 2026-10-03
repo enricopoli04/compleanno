@@ -1,22 +1,12 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 
 const auth = useAuthStore();
 const router = useRouter();
 
-onMounted(async () => {
-  if (auth.isLoggedIn) {
-    await auth.fetchMe();
-    if (!auth.isLoggedIn) {
-      router.push('/login');
-    }
-  }
-});
-
-function logout() {
-  auth.logout();
+async function logout() {
+  await auth.logout();
   router.push('/login');
 }
 

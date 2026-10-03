@@ -2,11 +2,10 @@ import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
+import { setAuthCookies, clearAuthCookies } from '../middleware/auth.js';
 
 const router = Router();
 
-// Hash fittizio con lo stesso costo (12) di quelli reali: serve a spendere
-// lo stesso tempo di bcrypt anche quando lo username non esiste.
 const FAKE_HASH = bcrypt.hashSync('password-fittizia', 12);
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -78,10 +77,9 @@ router.post('/signup', async (req: Request, res: Response) => {
       user.role = 'admin';
       await user.save();
     }
-    const token = signToken(String(user._id), user.username, user.role);
+    setAuthCookies(res, signToken(String(user._id), user.username, user.role));
 
     res.status(201).json({
-      token,
       user: {
         id: user._id,
         username: user.username,
@@ -151,10 +149,9 @@ router.post('/login', async (req: Request, res: Response) => {
       await user.save();
     }
 
-    const token = signToken(String(user._id), user.username, user.role);
+    setAuthCookies(res, signToken(String(user._id), user.username, user.role));
 
     res.json({
-      token,
       user: {
         id: user._id,
         username: user.username,
@@ -166,6 +163,11 @@ router.post('/login', async (req: Request, res: Response) => {
   } catch {
     res.status(500).json({ error: 'Errore del server' });
   }
+});
+
+router.post('/logout', (_req: Request, res: Response) => {
+  clearAuthCookies(res);
+  res.json({ ok: true });
 });
 
 export default router;

@@ -6,7 +6,8 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import eventRoutes from './routes/event.js';
 import adminRoutes from './routes/admin.js';
-import { apiLimiter, authLimiter } from './middleware/auth.js';
+import cookieParser from 'cookie-parser';
+import { apiLimiter, authLimiter, csrfProtection } from './middleware/auth.js';
 
 // Node's default resolver can fail to look up the SRV records used by
 // mongodb+srv:// URIs on some Windows setups even when the OS resolves
@@ -24,11 +25,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
 }));
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/api', apiLimiter);
+app.use('/api', csrfProtection);
 
 // Routes
 app.use('/api/auth/login', authLimiter);

@@ -1,20 +1,18 @@
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
-function getToken(): string | null {
-  return localStorage.getItem('token');
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+function getCsrfToken(): string | null {
+  const match = document.cookie.match(/(?:^|;\s*)csrf=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 async function request<T>(url: string, opts: RequestInit = {}): Promise<T> {
+  const csrf = getCsrfToken();
   const res = await fetch(`${BASE}${url}`, {
     ...opts,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...authHeaders(),
+      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
       ...(opts.headers || {}),
     },
   });
@@ -31,16 +29,18 @@ async function request<T>(url: string, opts: RequestInit = {}): Promise<T> {
 export const api = {
   // Auth
   signup: (username: string, password: string) =>
-    request<{ token: string; user: any }>('/auth/signup', {
+    request<{ user: any }>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     }),
 
   login: (username: string, password: string) =>
-    request<{ token: string; user: any }>('/auth/login', {
+    request<{ user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     }),
+
+  logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
 
   // Event
   getMe: () => request<any>('/event/me'),
