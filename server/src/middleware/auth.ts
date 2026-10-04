@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import rateLimit from 'express-rate-limit';
+import { User } from '../models/User.js';
 
 // Limite di 100 rischieste in una finestra di 15 minuti sulle rotte API
 export const apiLimiter = rateLimit({
@@ -73,25 +74,38 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction) 
   next();
 }
 
-export function auth(req: AuthRequest, res: Response, next: NextFunction) {
+export async function auth(req: AuthRequest, res: Response, next: NextFunction) {
   const token = req.cookies?.token;
   if (typeof token !== 'string') {
     res.status(401).json({ error: 'Non autenticato' });
     return;
   }
 
+  let userId: string;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      id: string;
-      username: string;
-      role: 'user' | 'admin';
-    };
-    req.userId = decoded.id;
-    req.username = decoded.username;
-    req.role = decoded.role;
-    next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    userId = decoded.id;
   } catch {
     res.status(401).json({ error: 'Token non valido' });
+    return;
+  }
+
+  // Il JWT dice solo CHI sei. Username e ruolo si leggono dal DB a ogni
+  // richiesta: così un utente cancellato o declassato perde subito l'accesso,
+  // senza aspettare la scadenza del token.
+  try {
+    const user = await User.findById(userId).select('username role');
+    if (!user) {
+      clearAuthCookies(res);
+      res.status(401).json({ error: 'Utente non trovato' });
+      return;
+    }
+    req.userId = String(user._id);
+    req.username = user.username;
+    req.role = user.role;
+    next();
+  } catch {
+    res.status(500).json({ error: 'Errore del server' });
   }
 }
 
