@@ -1,12 +1,12 @@
 import { Router, Response } from 'express';
-import { auth, adminOnly, AuthRequest } from '../middleware/auth.js';
+import { auth, requireRole, AuthRequest } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { Car } from '../models/Car.js';
 
 const router = Router();
 
 // All admin routes require a valid token AND the admin role.
-router.use(auth, adminOnly);
+router.use(auth, requireRole('admin'));
 
 // GET all users
 router.get('/users', async (_req: AuthRequest, res: Response) => {

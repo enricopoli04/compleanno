@@ -23,10 +23,12 @@ export const authLimiter = rateLimit({
   message: { error: 'Troppi tentativi di accesso, riprova tra 15 minuti' },
 });
 
+export type Role = 'user' | 'admin';
+
 export interface AuthRequest extends Request {
   userId?: string;
   username?: string;
-  role?: 'user' | 'admin';
+  role?: Role;
 }
 
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // stessa durata del JWT (7d)
@@ -90,9 +92,6 @@ export async function auth(req: AuthRequest, res: Response, next: NextFunction) 
     return;
   }
 
-  // Il JWT dice solo CHI sei. Username e ruolo si leggono dal DB a ogni
-  // richiesta: così un utente cancellato o declassato perde subito l'accesso,
-  // senza aspettare la scadenza del token.
   try {
     const user = await User.findById(userId).select('username role');
     if (!user) {
@@ -109,10 +108,12 @@ export async function auth(req: AuthRequest, res: Response, next: NextFunction) 
   }
 }
 
-export function adminOnly(req: AuthRequest, res: Response, next: NextFunction) {
-  if (req.role !== 'admin') {
-    res.status(403).json({ error: 'Accesso riservato agli amministratori' });
-    return;
-  }
-  next();
+export function requireRole(...allowed: Role[]) {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.role || !allowed.includes(req.role)) {
+      res.status(403).json({ error: 'Permessi insufficienti' });
+      return;
+    }
+    next();
+  };
 }
