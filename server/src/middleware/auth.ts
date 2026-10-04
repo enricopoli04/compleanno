@@ -117,3 +117,16 @@ export function requireRole(...allowed: Role[]) {
     next();
   };
 }
+
+export function validateIdParam(_req: Request, res: Response, next: NextFunction, id: string) {
+  if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+    res.status(400).json({ error: 'Id non valido' });
+    return;
+  }
+  next();
+}
+
+export function parseSeats(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isInteger(value)) return null;
+  return value >= 1 && value <= 20 ? value : null;
+}

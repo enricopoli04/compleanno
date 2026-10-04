@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { auth, requireRole, AuthRequest } from '../middleware/auth.js';
+import { auth, requireRole, AuthRequest, validateIdParam, parseSeats } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { Car } from '../models/Car.js';
 
@@ -7,6 +7,7 @@ const router = Router();
 
 // All admin routes require a valid token AND the admin role.
 router.use(auth, requireRole('admin'));
+router.param('id', validateIdParam);
 
 // GET all users
 router.get('/users', async (_req: AuthRequest, res: Response) => {
@@ -99,12 +100,17 @@ router.put('/cars/:id', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (req.body.seats) {
-      if (req.body.seats < car.passengers.length) {
+    if (req.body.seats !== undefined) {
+      const seats = parseSeats(req.body.seats);
+      if (seats === null) {
+        res.status(400).json({ error: 'Posti non validi (intero tra 1 e 20)' });
+        return;
+      }
+      if (seats < car.passengers.length) {
         res.status(400).json({ error: 'Non puoi ridurre i posti sotto il numero di passeggeri attuali' });
         return;
       }
-      car.seats = req.body.seats;
+      car.seats = seats;
     }
 
     await car.save();

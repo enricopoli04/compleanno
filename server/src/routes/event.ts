@@ -1,12 +1,15 @@
 import { Router, Response } from 'express';
-import { auth, AuthRequest } from '../middleware/auth.js';
+import { auth, AuthRequest, validateIdParam, parseSeats } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { Car } from '../models/Car.js';
 
 const router = Router();
 
+router.use(auth);
+router.param('id', validateIdParam);
+
 // GET attendance status for current user
-router.get('/me', auth, async (req: AuthRequest, res: Response) => {
+router.get('/me', async (req: AuthRequest, res: Response) => {
   try {
     const user = await User.findById(req.userId).select('-password');
     if (!user) {
@@ -26,7 +29,7 @@ router.get('/me', auth, async (req: AuthRequest, res: Response) => {
 });
 
 // SET attendance
-router.put('/attendance', auth, async (req: AuthRequest, res: Response) => {
+router.put('/attendance', async (req: AuthRequest, res: Response) => {
   try {
     const { attending } = req.body;
     if (!['yes', 'no', null].includes(attending)) {
@@ -64,7 +67,7 @@ router.put('/attendance', auth, async (req: AuthRequest, res: Response) => {
 });
 
 // SET own free-text note (visible to all logged-in users)
-router.put('/note', auth, async (req: AuthRequest, res: Response) => {
+router.put('/note', async (req: AuthRequest, res: Response) => {
   try {
     const { note } = req.body;
     if (typeof note !== 'string' || note.length > 200) {
@@ -91,7 +94,7 @@ router.put('/note', auth, async (req: AuthRequest, res: Response) => {
 });
 
 // GET all attendees
-router.get('/attendees', auth, async (_req: AuthRequest, res: Response) => {
+router.get('/attendees', async (_req: AuthRequest, res: Response) => {
   try {
     const users = await User.find({ attending: { $ne: null } })
       .select('username role attending note')
@@ -105,7 +108,7 @@ router.get('/attendees', auth, async (_req: AuthRequest, res: Response) => {
 // ── CARS ──
 
 // GET all cars
-router.get('/cars', auth, async (_req: AuthRequest, res: Response) => {
+router.get('/cars', async (_req: AuthRequest, res: Response) => {
   try {
     const cars = await Car.find().sort({ createdAt: 1 });
     res.json(cars);
@@ -115,9 +118,13 @@ router.get('/cars', auth, async (_req: AuthRequest, res: Response) => {
 });
 
 // CREATE car (offer ride)
-router.post('/cars', auth, async (req: AuthRequest, res: Response) => {
+router.post('/cars', async (req: AuthRequest, res: Response) => {
   try {
-    const { seats } = req.body;
+    const seats = req.body.seats === undefined ? 4 : parseSeats(req.body.seats);
+    if (seats === null) {
+      res.status(400).json({ error: 'Posti non validi (intero tra 1 e 20)' });
+      return;
+    }
 
     // Check user is attending
     const user = await User.findById(req.userId);
@@ -141,7 +148,7 @@ router.post('/cars', auth, async (req: AuthRequest, res: Response) => {
 
     const car = await Car.create({
       driverUsername: req.username,
-      seats: seats || 4,
+      seats,
       passengers: [],
     });
 
@@ -152,7 +159,7 @@ router.post('/cars', auth, async (req: AuthRequest, res: Response) => {
 });
 
 // DELETE car
-router.delete('/cars/:id', auth, async (req: AuthRequest, res: Response) => {
+router.delete('/cars/:id', async (req: AuthRequest, res: Response) => {
   try {
     const car = await Car.findById(req.params.id);
     if (!car) {
@@ -171,7 +178,7 @@ router.delete('/cars/:id', auth, async (req: AuthRequest, res: Response) => {
 });
 
 // JOIN car as passenger
-router.post('/cars/:id/join', auth, async (req: AuthRequest, res: Response) => {
+router.post('/cars/:id/join', async (req: AuthRequest, res: Response) => {
   try {
     const user = await User.findById(req.userId);
     if (!user || user.attending !== 'yes') {
@@ -219,7 +226,7 @@ router.post('/cars/:id/join', auth, async (req: AuthRequest, res: Response) => {
 });
 
 // LEAVE car as passenger
-router.post('/cars/:id/leave', auth, async (req: AuthRequest, res: Response) => {
+router.post('/cars/:id/leave', async (req: AuthRequest, res: Response) => {
   try {
     const car = await Car.findById(req.params.id);
     if (!car) {
@@ -242,7 +249,7 @@ router.post('/cars/:id/leave', auth, async (req: AuthRequest, res: Response) => 
 });
 
 // UPDATE car seats
-router.put('/cars/:id', auth, async (req: AuthRequest, res: Response) => {
+router.put('/cars/:id', async (req: AuthRequest, res: Response) => {
   try {
     const car = await Car.findById(req.params.id);
     if (!car) {
@@ -254,12 +261,17 @@ router.put('/cars/:id', auth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (req.body.seats) {
-      if (req.body.seats < car.passengers.length) {
+    if (req.body.seats !== undefined) {
+      const seats = parseSeats(req.body.seats);
+      if (seats === null) {
+        res.status(400).json({ error: 'Posti non validi (intero tra 1 e 20)' });
+        return;
+      }
+      if (seats < car.passengers.length) {
         res.status(400).json({ error: 'Non puoi ridurre i posti sotto il numero di passeggeri attuali' });
         return;
       }
-      car.seats = req.body.seats;
+      car.seats = seats;
     }
 
     await car.save();
