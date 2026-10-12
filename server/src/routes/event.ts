@@ -97,7 +97,7 @@ router.put('/note', async (req: AuthRequest, res: Response) => {
 router.get('/attendees', async (_req: AuthRequest, res: Response) => {
   try {
     const users = await User.find({ attending: { $ne: null } })
-      .select('username role attending note')
+      .select('-_id username role attending note')
       .sort({ username: 1 });
     res.json(users);
   } catch {

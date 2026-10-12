@@ -147,7 +147,7 @@ onMounted(async () => {
           <ul class="attendee-list">
             <li
               v-for="a in yesAttendees"
-              :key="a._id"
+              :key="a.username"
               class="attendee-item"
               style="flex-wrap: wrap"
             >
@@ -192,7 +192,7 @@ onMounted(async () => {
           <ul class="attendee-list">
             <li
               v-for="a in noAttendees"
-              :key="a._id"
+              :key="a.username"
               class="attendee-item"
               style="flex-wrap: wrap"
             >

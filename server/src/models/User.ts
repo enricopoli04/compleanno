@@ -52,7 +52,18 @@ const userSchema = new Schema<IUser>(
       default: null,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform: (_doc, ret: Record<string, unknown>) => {
+        delete ret.password;
+        delete ret.failedAttempts;
+        delete ret.lockUntil;
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
 );
 
 userSchema.pre('save', async function (next) {
