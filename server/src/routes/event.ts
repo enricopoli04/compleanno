@@ -161,16 +161,14 @@ router.post('/cars', async (req: AuthRequest, res: Response) => {
 // DELETE car
 router.delete('/cars/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const car = await Car.findById(req.params.id);
+    const car = await Car.findOneAndDelete({
+      _id: req.params.id,
+      driverUsername: req.username,
+    });
     if (!car) {
       res.status(404).json({ error: 'Macchina non trovata' });
       return;
     }
-    if (car.driverUsername !== req.username) {
-      res.status(403).json({ error: 'Non autorizzato' });
-      return;
-    }
-    await car.deleteOne();
     res.json({ message: 'Rimosso' });
   } catch {
     res.status(500).json({ error: 'Errore del server' });
@@ -251,13 +249,12 @@ router.post('/cars/:id/leave', async (req: AuthRequest, res: Response) => {
 // UPDATE car seats
 router.put('/cars/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const car = await Car.findById(req.params.id);
+    const car = await Car.findOne({
+      _id: req.params.id,
+      driverUsername: req.username,
+    });
     if (!car) {
       res.status(404).json({ error: 'Macchina non trovata' });
-      return;
-    }
-    if (car.driverUsername !== req.username) {
-      res.status(403).json({ error: 'Non autorizzato' });
       return;
     }
 
