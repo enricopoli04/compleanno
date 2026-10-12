@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { auth, requireRole, AuthRequest, validateIdParam, parseSeats } from '../middleware/auth.js';
 import { User } from '../models/User.js';
-import { Car } from '../models/Car.js';
+import { Car, findCarViews, carViewOf } from '../models/Car.js';
 
 const router = Router();
 
@@ -42,11 +42,8 @@ router.put('/users/:id/attendance', async (req: AuthRequest, res: Response) => {
     }
 
     if (attending !== 'yes') {
-      await Car.deleteMany({ driverUsername: user.username });
-      await Car.updateMany(
-        { passengers: user.username },
-        { $pull: { passengers: user.username } }
-      );
+      await Car.deleteMany({ driver: user._id });
+      await Car.updateMany({ passengers: user._id }, { $pull: { passengers: user._id } });
     }
 
     res.json(user);
@@ -69,11 +66,8 @@ router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    await Car.deleteMany({ driverUsername: user.username });
-    await Car.updateMany(
-      { passengers: user.username },
-      { $pull: { passengers: user.username } }
-    );
+    await Car.deleteMany({ driver: user._id });
+    await Car.updateMany({ passengers: user._id }, { $pull: { passengers: user._id } });
 
     res.json({ message: 'Utente eliminato' });
   } catch {
@@ -84,8 +78,7 @@ router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
 // GET all cars
 router.get('/cars', async (_req: AuthRequest, res: Response) => {
   try {
-    const cars = await Car.find().sort({ createdAt: 1 });
-    res.json(cars);
+    res.json(await findCarViews());
   } catch {
     res.status(500).json({ error: 'Errore del server' });
   }
@@ -114,7 +107,7 @@ router.put('/cars/:id', async (req: AuthRequest, res: Response) => {
     }
 
     await car.save();
-    res.json(car);
+    res.json(await carViewOf(car));
   } catch {
     res.status(500).json({ error: 'Errore del server' });
   }

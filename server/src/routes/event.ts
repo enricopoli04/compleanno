@@ -1,7 +1,8 @@
 import { Router, Response } from 'express';
 import { auth, AuthRequest, validateIdParam, parseSeats } from '../middleware/auth.js';
 import { User } from '../models/User.js';
-import { Car } from '../models/Car.js';
+import { Types } from 'mongoose';
+import { Car, findCarViews, carViewOf } from '../models/Car.js';
 
 const router = Router();
 
@@ -46,12 +47,10 @@ router.put('/attendance', async (req: AuthRequest, res: Response) => {
     // If user changes to "no" or null, remove them from any car
     if (attending !== 'yes') {
       // Remove as driver
-      await Car.deleteMany({ driverUsername: req.username });
+      const me = new Types.ObjectId(req.userId!);
+      await Car.deleteMany({ driver: me });
       // Remove as passenger
-      await Car.updateMany(
-        { passengers: req.username },
-        { $pull: { passengers: req.username } }
-      );
+      await Car.updateMany({ passengers: me }, { $pull: { passengers: me } });
     }
 
     res.json({
@@ -110,8 +109,7 @@ router.get('/attendees', async (_req: AuthRequest, res: Response) => {
 // GET all cars
 router.get('/cars', async (_req: AuthRequest, res: Response) => {
   try {
-    const cars = await Car.find().sort({ createdAt: 1 });
-    res.json(cars);
+    res.json(await findCarViews());
   } catch {
     res.status(500).json({ error: 'Errore del server' });
   }
@@ -126,34 +124,33 @@ router.post('/cars', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const me = new Types.ObjectId(req.userId!);
+
     // Check user is attending
-    const user = await User.findById(req.userId);
+    const user = await User.findById(me);
     if (!user || user.attending !== 'yes') {
       res.status(400).json({ error: 'Devi partecipare per offrire un passaggio' });
       return;
     }
 
     // Check not already driver
-    const existing = await Car.findOne({ driverUsername: req.username });
+    const existing = await Car.findOne({ driver: me });
     if (existing) {
       res.status(409).json({ error: 'Hai già offerto un passaggio' });
       return;
     }
 
     // Remove from other cars as passenger
-    await Car.updateMany(
-      { passengers: req.username },
-      { $pull: { passengers: req.username } }
-    );
+    await Car.updateMany({ passengers: me }, { $pull: { passengers: me } });
 
-    const car = await Car.create({
-      driverUsername: req.username,
-      seats,
-      passengers: [],
-    });
+    const car = await Car.create({ driver: me, seats, passengers: [] });
 
-    res.status(201).json(car);
-  } catch {
+    res.status(201).json(await carViewOf(car));
+  } catch (err: any) {
+    if (err?.code === 11000) {
+      res.status(409).json({ error: 'Hai già offerto un passaggio' });
+      return;
+    }
     res.status(500).json({ error: 'Errore del server' });
   }
 });
@@ -163,7 +160,7 @@ router.delete('/cars/:id', async (req: AuthRequest, res: Response) => {
   try {
     const car = await Car.findOneAndDelete({
       _id: req.params.id,
-      driverUsername: req.username,
+      driver: req.userId,
     });
     if (!car) {
       res.status(404).json({ error: 'Macchina non trovata' });
@@ -178,7 +175,9 @@ router.delete('/cars/:id', async (req: AuthRequest, res: Response) => {
 // JOIN car as passenger
 router.post('/cars/:id/join', async (req: AuthRequest, res: Response) => {
   try {
-    const user = await User.findById(req.userId);
+    const me = new Types.ObjectId(req.userId!);
+
+    const user = await User.findById(me);
     if (!user || user.attending !== 'yes') {
       res.status(400).json({ error: 'Devi partecipare per salire in macchina' });
       return;
@@ -190,12 +189,12 @@ router.post('/cars/:id/join', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (car.driverUsername === req.username) {
+    if (car.driver.equals(me)) {
       res.status(400).json({ error: 'Sei il conducente di questa macchina' });
       return;
     }
 
-    if (car.passengers.includes(req.username!)) {
+    if (car.passengers.some((p) => p.equals(me))) {
       res.status(400).json({ error: 'Sei già in questa macchina' });
       return;
     }
@@ -206,18 +205,15 @@ router.post('/cars/:id/join', async (req: AuthRequest, res: Response) => {
     }
 
     // Remove from other cars first
-    await Car.updateMany(
-      { passengers: req.username },
-      { $pull: { passengers: req.username } }
-    );
+    await Car.updateMany({ passengers: me }, { $pull: { passengers: me } });
 
     // Remove own car if driver
-    await Car.deleteMany({ driverUsername: req.username });
+    await Car.deleteMany({ driver: me });
 
-    car.passengers.push(req.username!);
+    car.passengers.push(me);
     await car.save();
 
-    res.json(car);
+    res.json(await carViewOf(car));
   } catch {
     res.status(500).json({ error: 'Errore del server' });
   }
@@ -226,21 +222,23 @@ router.post('/cars/:id/join', async (req: AuthRequest, res: Response) => {
 // LEAVE car as passenger
 router.post('/cars/:id/leave', async (req: AuthRequest, res: Response) => {
   try {
+    const me = new Types.ObjectId(req.userId!);
+
     const car = await Car.findById(req.params.id);
     if (!car) {
       res.status(404).json({ error: 'Macchina non trovata' });
       return;
     }
 
-    if (!car.passengers.includes(req.username!)) {
+    if (!car.passengers.some((p) => p.equals(me))) {
       res.status(400).json({ error: 'Non sei in questa macchina' });
       return;
     }
 
-    car.passengers = car.passengers.filter((p) => p !== req.username);
+    car.passengers = car.passengers.filter((p) => !p.equals(me));
     await car.save();
 
-    res.json(car);
+    res.json(await carViewOf(car));
   } catch {
     res.status(500).json({ error: 'Errore del server' });
   }
@@ -251,7 +249,7 @@ router.put('/cars/:id', async (req: AuthRequest, res: Response) => {
   try {
     const car = await Car.findOne({
       _id: req.params.id,
-      driverUsername: req.username,
+      driver: req.userId,
     });
     if (!car) {
       res.status(404).json({ error: 'Macchina non trovata' });
@@ -272,7 +270,7 @@ router.put('/cars/:id', async (req: AuthRequest, res: Response) => {
     }
 
     await car.save();
-    res.json(car);
+    res.json(await carViewOf(car));
   } catch {
     res.status(500).json({ error: 'Errore del server' });
   }

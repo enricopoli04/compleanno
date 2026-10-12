@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js';
 import eventRoutes from './routes/event.js';
 import adminRoutes from './routes/admin.js';
 import cookieParser from 'cookie-parser';
+import { migrateCars } from './models/Car.js';
 import { apiLimiter, authLimiter, csrfProtection } from './middleware/auth.js';
 
 // Node's default resolver can fail to look up the SRV records used by
@@ -51,6 +52,8 @@ async function start() {
   try {
     await mongoose.connect(process.env.MONGODB_URI!);
     console.log('✓ MongoDB connesso');
+
+    await migrateCars();
 
     app.listen(PORT, () => {
       console.log(`✓ Server avviato su http://localhost:${PORT}`);

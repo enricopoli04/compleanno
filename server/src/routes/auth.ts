@@ -6,7 +6,7 @@ import { setAuthCookies, clearAuthCookies } from '../middleware/auth.js';
 
 const router = Router();
 
-const FAKE_HASH = bcrypt.hashSync('password-fittizia', 12);
+const DUMMY_HASH = bcrypt.hashSync('password-fittizia', 12);
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
@@ -110,7 +110,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const user = await User.findOne({ username });
     if (!user) {
-      await bcrypt.compare(password, FAKE_HASH);
+      await bcrypt.compare(password, DUMMY_HASH);
       res.status(401).json({ error: 'Credenziali non valide' });
       return;
     }
