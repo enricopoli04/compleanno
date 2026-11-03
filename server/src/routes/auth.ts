@@ -2,6 +2,9 @@ import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { User } from '../models/User.js';
+
+const MAX_FAILED = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; 
 const AuthSchema = z.object({
 username: z.string().regex(/^[a-zA-Z0-9_]{3,30}$/),
 password: z.string().min(8).max(72),
@@ -83,12 +86,6 @@ router.post('/signup', async (req: Request, res: Response) => {
 
 router.post('/login', async (req: Request, res: Response) => {
   try {
-
-    // const { username, password } = req.body;
-    // if (!username || !password) {
-    //   res.status(400).json({ error: 'Username e password richiesti' });
-    //   return;
-    // }
     const parsed = AuthSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: 'Credenziali non valide' });
@@ -97,21 +94,40 @@ router.post('/login', async (req: Request, res: Response) => {
     const { username, password } = parsed.data;
 
     const user = await User.findOne({ username });
-    if (!user) {
+
+    const DUMMY_HASH = '$2a$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const candidate = user ? user.password : DUMMY_HASH;
+    const isMatch = await import('bcryptjs').then(m => m.compare(password, candidate));
+
+    if (!user || !isMatch) {
+      if (user) {
+        if (user.lockedUntil && user.lockedUntil > new Date()) {
+          res.status(429).json({ error: 'Account bloccato temporaneamente. Riprova tra 15 minuti.' });
+          return;
+        }
+        user.failedLogins = (user.failedLogins ?? 0) + 1;
+        if (user.failedLogins >= MAX_FAILED) {
+          user.lockedUntil = new Date(Date.now() + LOCKOUT_MS);
+          user.failedLogins = 0;
+        }
+        await user.save();
+      }
       res.status(401).json({ error: 'Credenziali non valide' });
       return;
     }
 
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      res.status(401).json({ error: 'Credenziali non valide' });
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      res.status(429).json({ error: 'Account bloccato temporaneamente. Riprova tra 15 minuti.' });
       return;
     }
+
+    user.failedLogins = 0;
+    user.lockedUntil = null;
 
     if (isConfiguredAdmin(user.username) && user.role !== 'admin') {
       user.role = 'admin';
-      await user.save();
     }
+    await user.save();
 
     const token = signToken(String(user._id), user.username, user.role);
 
