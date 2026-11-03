@@ -1,8 +1,6 @@
 # GENERATO CON IA
 
 # PROMPT: "Generate a PowerShell integration test script for a Node.js/Express REST API. The script must cover: input validation (zod schemas), authentication (JWT bearer token), NoSQL injection attempts, payload size limits, duplicate resource creation, and role-based access control. For each test case print PASS/FAIL with the actual vs expected HTTP status code. Use a shared helper function to avoid repetition. The API runs on localhost:3001."
-# cd C:\Users\auror\OneDrive\Desktop\Cysec\compleanno
-# .\TESTS.ps1
 
 $BASE = "http://localhost:3001/api"
 
