@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import mongoose from 'mongoose';
 import { z } from 'zod';
 import { auth, AuthRequest } from '../middleware/auth.js';
 import { User } from '../models/User.js';
@@ -112,7 +113,8 @@ router.put('/note', auth, async (req: AuthRequest, res: Response) => {
 // GET all attendees
 router.get('/attendees', auth, async (_req: AuthRequest, res: Response) => {
   try {
-    const users = await User.find({ attending: { $ne: null } })
+    // const users = await User.find({ attending: { $ne: null } })
+    const users = await User.find({ attending: mongoose.trusted({ $ne: null }) })
       .select('username role attending note')
       .sort({ username: 1 });
     res.json(users);
@@ -236,19 +238,41 @@ router.post('/cars/:id/join', auth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // Remove from other cars first
+    // // Remove from other cars first
+    // await Car.updateMany(
+    //   { passengers: req.username },
+    //   { $pull: { passengers: req.username } }
+    // );
+    //
+    // // Remove own car if driver
+    // await Car.deleteMany({ driverUsername: req.username });
+    //
+    // car.passengers.push(req.username!);
+    // await car.save();
+    //
+    // res.json(car);
+    const joined = await Car.findOneAndUpdate(
+      {
+        _id: car._id,
+        driverUsername: mongoose.trusted({ $ne: req.username }),
+        passengers: mongoose.trusted({ $ne: req.username }),
+        $expr: mongoose.trusted({ $lt: [{ $size: '$passengers' }, '$seats'] }),
+      },
+      { $push: { passengers: req.username } },
+      { new: true }
+    );
+    if (!joined) {
+      res.status(409).json({ error: 'Macchina piena o modificata nel frattempo, riprova' });
+      return;
+    }
+
     await Car.updateMany(
-      { passengers: req.username },
+      { _id: mongoose.trusted({ $ne: joined._id }), passengers: req.username },
       { $pull: { passengers: req.username } }
     );
-
-    // Remove own car if driver
     await Car.deleteMany({ driverUsername: req.username });
 
-    car.passengers.push(req.username!);
-    await car.save();
-
-    res.json(car);
+    res.json(joined);
   } catch {
     res.status(500).json({ error: 'Errore del server' });
   }

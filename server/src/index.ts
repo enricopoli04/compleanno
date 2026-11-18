@@ -10,6 +10,7 @@ import helmet from "helmet";
 import hpp from "hpp";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
+import { z } from "zod";
 import authRoutes from "./routes/auth.js";
 import eventRoutes from "./routes/event.js";
 import adminRoutes from "./routes/admin.js";
@@ -21,6 +22,15 @@ if (secret.length < 32) {
 }
 if (/^(cambia|change|secret|example|placeholder)/i.test(secret)) {
   console.warn('JWT_SECRET sembra un placeholder. Sostituiscilo con un segreto casuale.');
+}
+const EnvSchema = z.object({
+  MONGODB_URI: z.string().regex(/^mongodb(\+srv)?:\/\/\S+$/),
+  FRONTEND_URL: z.url({ protocol: /^https?$/ }),
+});
+const env = EnvSchema.safeParse(process.env);
+if (!env.success) {
+  console.error("Variabili d'ambiente mancanti o non valide: " + env.error.issues.map((i) => i.path.join(".")).join(", "));
+  process.exit(1);
 }
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const app = express();
@@ -67,6 +77,10 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   // if (err.code === 11000) {
   if (err.type === "entity.too.large") {
     res.status(413).json({ error: "Payload troppo grande" });
+    return;
+  }
+  if (err.type === "entity.parse.failed") {
+    res.status(400).json({ error: "JSON non valido" });
     return;
   }
   if (err.code === 11000) {
